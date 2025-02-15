@@ -3,58 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Venue Events</title>
+    <title>Upcoming Events</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-        }
-        table {
-            width: 80%;
-            margin: 20px auto;
-            border-collapse: collapse;
-            background: white;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-        th {
-            background-color: #333;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        a {
-            text-decoration: none;
-            color: #007bff;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; padding: 0; }
+        h1 { text-align: center; }
+        .event { padding: 10px; border-bottom: 1px solid #ddd; }
+        .event a { text-decoration: none; color: blue; }
+        .event a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-
     <h1>Upcoming Events</h1>
-
     {% if events %}
-        <table>
-            <tr>
-                <th>Date</th>
-                <th>Event</th>
-                <th>Venue</th>
-            </tr>
-            {% for event in events %}
-            <tr>
-                <td>{{ event[0] }}</td>
-                <td><a href="{{ event[3] }}" target="_blank">{{ event[1] }}</a></td>
-                <td>{{ event[2] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+        {% for event in events %}
+            <div class="event">
+                <strong>{{ event[0] }}</strong> - 
+                <a href="{{ event[3] }}" target="_blank">{{ event[1] }}</a> 
+                ({{ event[2] }})
+            </div>
+        {% endfor %}
     {% else %}
         <p>No upcoming events found.</p>
     {% endif %}
-
 </body>
 </html>

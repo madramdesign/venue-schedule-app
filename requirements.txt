@@ -2,3 +2,6 @@ flask
 requests
 beautifulsoup4
 gunicorn
+selenium
+webdriver-manager
+gunicorn

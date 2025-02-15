@@ -1,67 +1,100 @@
-import requests
-from bs4 import BeautifulSoup
 from flask import Flask, render_template
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 
 app = Flask(__name__)
 
-# Scraper for Dingbatz with updated URL
+def setup_driver():
+    """Sets up the Selenium WebDriver with headless Chrome."""
+    options = Options()
+    options.add_argument("--headless")  # Run in background
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("start-maximized")
+    options.add_argument("disable-infobars")
+    options.add_argument("--disable-extensions")
+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
+
 def scrape_dingbatz():
+    """Scrapes events from Dingbatz website."""
     url = "https://dingbatzlive.com/show-calendar/"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
+    driver = setup_driver()
 
-    if response.status_code != 200:
-        print(f"Dingbatz Error: {response.status_code}")
-        return []
+    try:
+        driver.get(url)
+        time.sleep(5)  # Wait for page load
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    events = []
+        events = []
+        event_elements = driver.find_elements(By.CLASS_NAME, "fusion-event")
 
-    for event in soup.find_all("div", class_="fusion-event"):
-        # Extract event date
-        date_tag = event.find("div", class_="fusion-event-date")
-        date = date_tag.text.strip() if date_tag else "Unknown Date"
+        for event in event_elements:
+            date_elem = event.find_element(By.CLASS_NAME, "fusion-event-date")
+            date = date_elem.text.strip() if date_elem else "Unknown Date"
 
-        # Extract event title and link
-        title_tag = event.find("h3", class_="fusion-event-title")
-        title_link = title_tag.find("a") if title_tag else None
-        title = title_link.text.strip() if title_link else "Unknown Event"
-        link = title_link["href"] if title_link else "#"
+            title_elem = event.find_element(By.CLASS_NAME, "fusion-event-title")
+            title_link = title_elem.find_element(By.TAG_NAME, "a") if title_elem else None
+            title = title_link.text.strip() if title_link else "Unknown Event"
+            link = title_link.get_attribute("href") if title_link else "#"
 
-        events.append((date, title, "Dingbatz", link))
+            events.append((date, title, "Dingbatz", link))
 
+    except Exception as e:
+        print(f"Error fetching events from Dingbatz: {e}")
+        events = []
+    
+    finally:
+        driver.quit()
+    
     return events
 
-# Scraper for Debonair Music Hall
 def scrape_debonair():
-    url = "https://www.debonairmusichall.com/shows"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
+    """Scrapes events from Debonair Music Hall website."""
+    url = "https://www.debonairmusichall.com/"
+    driver = setup_driver()
 
-    if response.status_code != 200:
-        print(f"Debonair Error: {response.status_code}")
-        return []
+    try:
+        driver.get(url)
+        time.sleep(5)  # Wait for page load
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    events = []
+        events = []
+        event_elements = driver.find_elements(By.CLASS_NAME, "event-item")
 
-    for event in soup.find_all("div", class_="event-item"):
-        date_tag = event.find("div", class_="event-date")
-        date = date_tag.text.strip() if date_tag else "Unknown Date"
+        for event in event_elements:
+            date_elem = event.find_element(By.CLASS_NAME, "event-date")
+            date = date_elem.text.strip() if date_elem else "Unknown Date"
 
-        title_tag = event.find("a", class_="event-title")
-        title = title_tag.text.strip() if title_tag else "Unknown Event"
-        link = title_tag["href"] if title_tag else "#"
+            title_elem = event.find_element(By.CLASS_NAME, "event-title")
+            title_link = title_elem.find_element(By.TAG_NAME, "a") if title_elem else None
+            title = title_link.text.strip() if title_link else "Unknown Event"
+            link = title_link.get_attribute("href") if title_link else "#"
 
-        events.append((date, title, "Debonair Music Hall", link))
+            events.append((date, title, "Debonair Music Hall", link))
 
+    except Exception as e:
+        print(f"Error fetching events from Debonair Music Hall: {e}")
+        events = []
+    
+    finally:
+        driver.quit()
+    
     return events
 
-@app.route("/")
+@app.route('/')
 def home():
-    # Combine events from both venues
-    all_events = scrape_dingbatz() + scrape_debonair()
-    all_events.sort()  # Sort by date (optional)
+    """Combines and displays upcoming events from multiple venues."""
+    dingbatz_events = scrape_dingbatz()
+    debonair_events = scrape_debonair()
+    all_events = dingbatz_events + debonair_events
+
+    # Sort events by date
+    all_events.sort(key=lambda x: x[0])
 
     return render_template("index.html", events=all_events)
 
